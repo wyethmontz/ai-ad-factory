@@ -1,6 +1,10 @@
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from workflows.ad_pipeline import run_pipeline
 from core.db import save_ad, supabase
@@ -8,7 +12,20 @@ from core.job_store import jobs
 from core.analytics import get_summary
 from agents.optimizer import run_optimizer
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI()
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Too many requests. Please slow down."},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,10 +37,10 @@ app.add_middleware(
 
 
 class AdRequest(BaseModel):
-    product: str
-    audience: str
-    platform: str
-    goal: str
+    product: str = Field(..., max_length=200)
+    audience: str = Field(..., max_length=200)
+    platform: str = Field(..., max_length=200)
+    goal: str = Field(..., max_length=200)
 
 
 def _run_job(job_id: str, input_data: dict):
@@ -42,12 +59,13 @@ def _run_job(job_id: str, input_data: dict):
 
 
 @app.post("/generate-ad")
-def generate_ad(request: AdRequest, background_tasks: BackgroundTasks):
+@limiter.limit("5/minute")
+def generate_ad(request: Request, ad: AdRequest, background_tasks: BackgroundTasks):
     input_data = {
-        "product": request.product,
-        "audience": request.audience,
-        "platform": request.platform,
-        "goal": request.goal,
+        "product": ad.product.strip(),
+        "audience": ad.audience.strip(),
+        "platform": ad.platform.strip(),
+        "goal": ad.goal.strip(),
     }
 
     job_id = jobs.create_job(input_data)
@@ -57,7 +75,8 @@ def generate_ad(request: AdRequest, background_tasks: BackgroundTasks):
 
 
 @app.get("/jobs/{job_id}")
-def get_job(job_id: str):
+@limiter.limit("60/minute")
+def get_job(request: Request, job_id: str):
     job = jobs.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -65,7 +84,10 @@ def get_job(job_id: str):
 
 
 @app.get("/ads")
-def list_ads(search: str = ""):
+@limiter.limit("30/minute")
+def list_ads(request: Request, search: str = ""):
+    if len(search) > 100:
+        raise HTTPException(status_code=400, detail="Search query too long")
     query = supabase.table("ads").select("*").order("created_at", desc=True)
     if search:
         query = query.ilike("product", f"%{search}%")
@@ -73,18 +95,21 @@ def list_ads(search: str = ""):
 
 
 @app.get("/ads/{ad_id}")
-def get_ad(ad_id: str):
+@limiter.limit("30/minute")
+def get_ad(request: Request, ad_id: str):
     result = supabase.table("ads").select("*").eq("id", ad_id).single().execute()
     return result.data
 
 
 @app.get("/analytics/summary")
-def analytics_summary():
+@limiter.limit("15/minute")
+def analytics_summary(request: Request):
     return get_summary()
 
 
 @app.get("/analytics/insights")
-def analytics_insights():
+@limiter.limit("5/minute")
+def analytics_insights(request: Request):
     try:
         insights = run_optimizer()
         return {"insights": insights or "Not enough data yet. Generate at least 3 ads."}
