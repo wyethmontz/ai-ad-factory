@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/monta/ai-ad-factory -not -path \"*/venv/*\" -not -path \"*/.git/*\" -type f -exec wc -l {} +)",
+      "Bash(sed 's/.*\\\\.//')"
+    ]
+  }
+}
