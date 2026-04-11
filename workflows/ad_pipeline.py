@@ -30,10 +30,15 @@ def run_pipeline(input_data, on_step=None):
     print(strategy_raw)
 
     # STEP 2 — CONVERT TEXT → JSON
+    # Strip markdown code fences (```json ... ``` or ``` ... ```) if present
+    cleaned = re.sub(r"```(?:json)?\s*", "", strategy_raw).strip()
+    # Extract the first {...} block in case Claude added surrounding text
+    json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
     try:
-        strategy = json.loads(strategy_raw)
-    except json.JSONDecodeError:
+        strategy = json.loads(json_match.group() if json_match else cleaned)
+    except (json.JSONDecodeError, AttributeError):
         print("\nERROR: AI did not return valid JSON")
+        print("Cleaned output was:", cleaned)
         return {"error": "AI did not return valid JSON", "raw": strategy_raw}
 
     # STEP 3 — COPYWRITER
