@@ -1,58 +1,113 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
 ## Setup
 
-Activate the virtual environment and set your API key before running anything:
-
+### Backend
 ```bash
-source venv/Scripts/activate   # Windows Git Bash / bash
-# or: venv\Scripts\activate.bat  (cmd) / venv\Scripts\Activate.ps1 (PowerShell)
+cd ai-ad-factory
+source venv/Scripts/activate   # Windows Git Bash
+pip install -r requirements.txt
+uvicorn api:app --reload
 ```
 
-Copy `.env` and fill in your key:
+### Frontend
+```bash
+cd ai-frontend
+npm install
+npm run dev
+```
+
+### Docker (runs both)
+```bash
+docker-compose up --build
+```
+
+### Environment variables
+Backend `.env`:
 ```
 ANTHROPIC_API_KEY=sk-ant-...
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_KEY=eyJ...
 ```
 
-The project uses `python-dotenv`, so `.env` is loaded automatically when the module calls `load_dotenv()`.
-
-## Installed dependencies
-
-The venv already has these packages pinned:
-- `anthropic` — Anthropic Python SDK (Claude API)
-- `python-dotenv` — `.env` loading
-- `pydantic` — data validation / typed models
-- `httpx` / `httpcore` — async HTTP (used internally by the Anthropic SDK)
-
-No `requirements.txt` exists yet; install new packages into the venv and document them here or in a requirements file.
+Frontend `ai-frontend/.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+```
 
 ## Architecture
 
-The project is an AI-powered advertising strategy generator. The intended data flow:
+AI-powered ad generation pipeline with 6 agents:
 
 ```
-Input: product, audience, platform, goal
-    → agents/strategist.py   (orchestrates the request)
-    → core/llm.py            (wraps Anthropic SDK calls)
-    → prompts/               (stores prompt templates)
-    → workflows/             (multi-step orchestration, if needed)
-Output: hook, angle, positioning
+User Input (product, audience, platform, goal)
+   → Optimizer        (learns from past top-scoring ads)
+   → Strategist       (creates hook, angle, positioning as JSON)
+   → Copywriter       (writes ad script + CTA)
+   → Creative Director (breaks into visual scenes)
+   → QA Evaluator     (scores 1-10 with feedback)
+   → Media Generator  (creates AI image prompts)
+   → Supabase         (saves everything)
+   → Frontend         (displays results)
 ```
 
-**agents/strategist.py** — the main agent; currently holds the input/output specification as a comment stub. This is where the top-level logic (prompt construction, response parsing) should live.
+### Backend (Python / FastAPI)
+- `api.py` — FastAPI server with all routes
+- `agents/` — 6 AI agents (strategist, copywriter, creative, qa, media, optimizer)
+- `core/llm.py` — Claude API wrapper (claude-sonnet-4)
+- `core/db.py` — Supabase client + save_ad()
+- `core/job_store.py` — In-memory background job tracking
+- `core/analytics.py` — Analytics queries
+- `core/auth.py` — JWT auth middleware (Supabase Auth)
+- `workflows/ad_pipeline.py` — 7-step pipeline orchestration
 
-**core/llm.py** — the LLM integration layer. Should encapsulate the `anthropic.Anthropic` client, handle API calls, and expose a clean interface so agents aren't coupled to the SDK directly.
+### Frontend (TypeScript / Next.js)
+- `app/page.tsx` — Generate Ad page (form + polling + results)
+- `app/history/page.tsx` — Searchable ad history with cards
+- `app/analytics/page.tsx` — Dashboard with charts (recharts)
+- `app/login/page.tsx` — Supabase Auth login/signup
+- `app/components/` — Sidebar, AdCard, SearchBar, AuthGuard
 
-**prompts/** — intended for prompt template files (e.g., Jinja2 or plain `.txt`/`.md` templates).
+### API Endpoints
+- `POST /generate-ad` — Starts pipeline (returns job_id, async)
+- `GET /jobs/{job_id}` — Poll job status and progress
+- `GET /ads` — List ads (supports ?search= filter)
+- `GET /ads/{ad_id}` — Get single ad
+- `GET /analytics/summary` — Dashboard stats
+- `GET /analytics/insights` — AI-generated insights
 
-**workflows/** — intended for multi-step or chained agent workflows.
+## Security Checklist
 
-## Running the project
+IMPORTANT: Apply these whenever adding new endpoints or deploying:
 
-No entry point script exists yet. Once implemented, the expected invocation will be something like:
+1. **Rate limiting** — Every public endpoint must have rate limits to prevent credit burning and DoS. Use `slowapi` or similar. Suggested limits:
+   - `/generate-ad` → 5 requests/minute per IP
+   - `/ads`, `/analytics` → 30 requests/minute per IP
+   - `/login` → 10 requests/minute per IP
 
-```bash
-python agents/strategist.py
-```
+2. **Input validation** — All user inputs must have max length:
+   - product, audience, platform, goal → max 200 characters each
+   - search query → max 100 characters
+   - Reject requests over 10KB total
+
+3. **CORS** — Lock down to specific frontend origin in production. Never ship `allow_origins=["*"]` to prod.
+
+4. **Auth on sensitive routes** — Use `core/auth.py` dependency on routes that should require login.
+
+5. **API keys** — Never hardcode. Always use .env files. Never commit .env to git.
+
+6. **HTTPS** — Required for any public deployment. Use a reverse proxy (nginx, Caddy) or platform TLS (Vercel, Railway).
+
+## Database (Supabase)
+
+Table: `ads`
+Columns: id (uuid), product, audience, platform, goal, hook, angle, positioning, copy, creative, qa_score, qa_score_numeric (int), media, images (text), created_at (timestamptz)
+
+## Dependencies
+
+Backend: see `requirements.txt`
+Frontend: see `ai-frontend/package.json`
