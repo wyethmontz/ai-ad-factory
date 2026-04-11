@@ -34,3 +34,17 @@ def generate_ad(request: AdRequest):
     }
 
     return run_pipeline(input_data)
+
+
+@app.get("/ads")
+def list_ads(search: str = ""):
+    query = supabase.table("ads").select("*").order("created_at", desc=True)
+    if search:
+        query = query.ilike("product", f"%{search}%")
+    return query.execute().data
+
+
+@app.get("/ads/{ad_id}")
+def get_ad(ad_id: str):
+    result = supabase.table("ads").select("*").eq("id", ad_id).single().execute()
+    return result.data
