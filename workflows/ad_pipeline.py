@@ -1,15 +1,30 @@
 import json
+import re
 from agents.strategist import run_strategist
 from agents.copywriter import run_copywriter
 from agents.creative import run_creative
 from agents.qa import run_qa
 from agents.media import run_media
+from agents.optimizer import run_optimizer
 from core.db import save_ad
 
-def run_pipeline(input_data):
+def run_pipeline(input_data, on_step=None):
+
+    def _step(name):
+        print(f"\n[STEP: {name}]")
+        if on_step:
+            on_step(name)
+
+    # STEP 0 — OPTIMIZER (learn from past ads)
+    _step("Analyzing past ad performance...")
+    try:
+        insights = run_optimizer()
+    except Exception:
+        insights = None  # Don't block pipeline if optimizer fails
 
     # STEP 1 — STRATEGIST (RAW AI TEXT)
-    strategy_raw = run_strategist(input_data)
+    _step("Running strategist...")
+    strategy_raw = run_strategist(input_data, insights=insights)
 
     print("\n[RAW STRATEGIST OUTPUT]\n")
     print(strategy_raw)
@@ -17,24 +32,28 @@ def run_pipeline(input_data):
     # STEP 2 — CONVERT TEXT → JSON
     try:
         strategy = json.loads(strategy_raw)
-    except:
+    except json.JSONDecodeError:
         print("\nERROR: AI did not return valid JSON")
-        return strategy_raw
+        return {"error": "AI did not return valid JSON", "raw": strategy_raw}
 
     # STEP 3 — COPYWRITER
+    _step("Writing ad copy...")
     copy = run_copywriter(strategy)
 
     # STEP 4 — CREATIVE DIRECTOR
+    _step("Creating visual scenes...")
     creative = run_creative({
         "script": copy
     })
 
     # STEP 5 — QA CHECK
+    _step("Running QA evaluation...")
     qa = run_qa({
         "content": creative
     })
 
     # STEP 6 — MEDIA GENERATION
+    _step("Generating media prompts...")
     media = run_media({
         "scenes": creative
     })
@@ -42,14 +61,23 @@ def run_pipeline(input_data):
     # ---------------------------
     # STEP 7 — SAVE TO SUPABASE (PHASE 6)
     # ---------------------------
+
+    # Extract numeric QA score for analytics
+    score_match = re.search(r'\d+', qa or "")
+    qa_numeric = int(score_match.group()) if score_match else None
+
     final_payload = {
         "product": input_data["product"],
+        "audience": input_data.get("audience", ""),
+        "platform": input_data.get("platform", ""),
+        "goal": input_data.get("goal", ""),
         "hook": strategy.get("hook", ""),
         "angle": strategy.get("angle", ""),
         "positioning": strategy.get("positioning", ""),
         "copy": copy,
         "creative": creative,
         "qa_score": qa,
+        "qa_score_numeric": qa_numeric,
         "media": media
     }
 

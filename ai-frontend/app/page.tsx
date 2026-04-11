@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-
-const API = "http://127.0.0.1:8000";
+import { API_URL } from "../lib/api";
 
 export default function Home() {
   const [form, setForm] = useState({
@@ -15,6 +14,7 @@ export default function Home() {
 
   const [result, setResult] = useState<Record<string, string> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState("");
   const [error, setError] = useState("");
 
   // Check if user clicked "Reuse" from the History page
@@ -34,17 +34,43 @@ export default function Home() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  async function pollJob(jobId: string) {
+    const poll = async (): Promise<void> => {
+      const res = await axios.get(`${API_URL}/jobs/${jobId}`);
+      const job = res.data;
+
+      if (job.current_step) {
+        setCurrentStep(job.current_step);
+      }
+
+      if (job.status === "completed") {
+        setResult(job.result);
+        setLoading(false);
+        setCurrentStep("");
+      } else if (job.status === "failed") {
+        setError(job.error || "Ad generation failed");
+        setLoading(false);
+        setCurrentStep("");
+      } else {
+        await new Promise((r) => setTimeout(r, 2000));
+        return poll();
+      }
+    };
+    await poll();
+  }
+
   async function generateAd() {
     setLoading(true);
     setError("");
     setResult(null);
+    setCurrentStep("Starting pipeline...");
     try {
-      const res = await axios.post(`${API}/generate-ad`, form);
-      setResult(res.data);
+      const res = await axios.post(`${API_URL}/generate-ad`, form);
+      await pollJob(res.data.job_id);
     } catch {
-      setError("Failed to generate ad. Is your backend running?");
-    } finally {
+      setError("Failed to connect to backend. Is it running?");
       setLoading(false);
+      setCurrentStep("");
     }
   }
 
@@ -91,6 +117,15 @@ export default function Home() {
           {loading ? "Generating..." : "Generate Ad"}
         </button>
       </div>
+
+      {loading && currentStep && (
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-blue-400 font-medium">{currentStep}</p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="text-red-400 text-center py-4">{error}</p>

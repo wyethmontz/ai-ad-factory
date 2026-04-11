@@ -3,8 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import AdCard from "../components/AdCard";
 import SearchBar from "../components/SearchBar";
-
-const API = "http://127.0.0.1:8000";
+import { API_URL } from "../../lib/api";
 
 type Ad = {
   id: string;
@@ -28,7 +27,7 @@ export default function HistoryPage() {
     try {
       setLoading(true);
       const params = search ? `?search=${encodeURIComponent(search)}` : "";
-      const res = await axios.get(`${API}/ads${params}`);
+      const res = await axios.get(`${API_URL}/ads${params}`);
       setAds(res.data);
     } catch {
       setError("Failed to load ads. Is your backend running?");
