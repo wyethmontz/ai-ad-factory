@@ -3,7 +3,10 @@
     "allow": [
       "Bash(find /c/Users/monta/ai-ad-factory -not -path \"*/venv/*\" -not -path \"*/.git/*\" -type f -exec wc -l {} +)",
       "Bash(sed 's/.*\\\\.//')",
-      "Bash(venv/Scripts/python.exe -m pip install supabase)"
+      "Bash(venv/Scripts/python.exe -m pip install supabase)",
+      "Bash(where qemu-system-x86_64)",
+      "Bash(where qemu-system-x86_64.exe)",
+      "Read(//c/Program Files \\(x86\\)/**)"
     ]
   }
 }

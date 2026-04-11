@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../lib/api";
-import LazyImage from "./components/LazyImage";
 
 export default function Home() {
   const [form, setForm] = useState({
@@ -18,7 +17,6 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState("");
   const [error, setError] = useState("");
 
-  // Check if user clicked "Reuse" from the History page
   useEffect(() => {
     const saved = localStorage.getItem("reuse_ad");
     if (saved) {
@@ -170,28 +168,6 @@ export default function Home() {
             <h3 className="text-sm font-semibold text-gray-400 mb-1">Media Prompts</h3>
             <p className="text-white whitespace-pre-wrap">{result.media}</p>
           </div>
-
-          {(() => {
-            let imgs: string[] = [];
-            try {
-              imgs = result.images ? JSON.parse(result.images) : [];
-            } catch { /* ignore */ }
-            return Array.isArray(imgs) && imgs.length > 0 ? (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-3">Generated Images</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {imgs.map((url: string, i: number) => (
-                    <LazyImage
-                      key={i}
-                      src={url}
-                      alt={`Generated ad image ${i + 1}`}
-                      delay={i * 15000}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
         </div>
       )}
     </div>
