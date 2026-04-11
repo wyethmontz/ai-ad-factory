@@ -23,15 +23,18 @@ def shorten_prompt(prompt: str, max_chars: int = 200) -> str:
     prompt = re.sub(r"--style \w+", "", prompt)
     prompt = prompt.strip()
 
+    # Clean trailing punctuation
+    prompt = prompt.rstrip(",.;:!? ")
+
     if len(prompt) <= max_chars:
         return prompt
 
     # Take the first sentence or first max_chars characters
     first_sentence = prompt.split(". ")[0]
     if len(first_sentence) <= max_chars:
-        return first_sentence
+        return first_sentence.rstrip(",.;:!? ")
 
-    return prompt[:max_chars].rsplit(" ", 1)[0]
+    return prompt[:max_chars].rsplit(" ", 1)[0].rstrip(",.;:!? ")
 
 
 def generate_images(prompts: list[str]) -> list[str]:
@@ -40,12 +43,11 @@ def generate_images(prompts: list[str]) -> list[str]:
     Pollinations generates images on-the-fly from a URL.
     No API key, no signup, no cost.
     """
-    image_urls = []
+    # Pollinations allows only 1 concurrent request for anonymous users
+    # Generate 1 hero image from the best prompt
+    short = shorten_prompt(prompts[0])
+    encoded = urllib.parse.quote(short)
+    seed = hash(short) % 100000  # Consistent seed per prompt
+    url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=768&nologo=true&seed={seed}"
 
-    for prompt in prompts:
-        short = shorten_prompt(prompt)
-        encoded = urllib.parse.quote(short)
-        url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=768&nologo=true"
-        image_urls.append(url)
-
-    return image_urls
+    return [url]
