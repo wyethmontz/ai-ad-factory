@@ -1,10 +1,6 @@
-"""Generate images from text prompts using Replicate API (Flux Schnell)."""
-import os
+"""Generate images from text prompts using Pollinations.ai (free, no API key)."""
 import re
-import replicate
-from dotenv import load_dotenv
-
-load_dotenv()
+import urllib.parse
 
 
 def parse_prompts(media_text: str) -> list[str]:
@@ -15,29 +11,20 @@ def parse_prompts(media_text: str) -> list[str]:
         cleaned = re.sub(r"^\d+[\.\)]\s*", "", line.strip())
         if cleaned and len(cleaned) > 10:
             prompts.append(cleaned)
-    return prompts[:4]  # Max 4 images to stay within free tier
+    return prompts[:4]  # Max 4 images
 
 
 def generate_images(prompts: list[str]) -> list[str]:
-    """Send prompts to Replicate Flux Schnell and return image URLs."""
+    """Build Pollinations.ai image URLs from prompts.
+
+    Pollinations generates images on-the-fly from a URL.
+    No API key, no signup, no cost.
+    """
     image_urls = []
 
     for prompt in prompts:
-        try:
-            output = replicate.run(
-                "black-forest-labs/flux-schnell",
-                input={
-                    "prompt": prompt,
-                    "num_outputs": 1,
-                    "go_fast": True,
-                },
-            )
-            # Output is a list of FileOutput objects with a .url attribute
-            if output and len(output) > 0:
-                url = str(output[0])
-                image_urls.append(url)
-        except Exception as e:
-            print(f"Image generation failed for prompt: {e}")
-            continue
+        encoded = urllib.parse.quote(prompt)
+        url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=768&nologo=true"
+        image_urls.append(url)
 
     return image_urls
