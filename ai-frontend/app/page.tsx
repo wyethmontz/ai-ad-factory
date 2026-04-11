@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../lib/api";
+import LazyImage from "./components/LazyImage";
 
 export default function Home() {
   const [form, setForm] = useState({
@@ -180,11 +181,11 @@ export default function Home() {
                 <h3 className="text-sm font-semibold text-gray-400 mb-3">Generated Images</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {imgs.map((url: string, i: number) => (
-                    <img
+                    <LazyImage
                       key={i}
                       src={url}
                       alt={`Generated ad image ${i + 1}`}
-                      className="rounded-lg w-full"
+                      delay={i * 15000}
                     />
                   ))}
                 </div>

@@ -43,11 +43,13 @@ def generate_images(prompts: list[str]) -> list[str]:
     Pollinations generates images on-the-fly from a URL.
     No API key, no signup, no cost.
     """
-    # Pollinations allows only 1 concurrent request for anonymous users
-    # Generate 1 hero image from the best prompt
-    short = shorten_prompt(prompts[0])
-    encoded = urllib.parse.quote(short)
-    seed = hash(short) % 100000  # Consistent seed per prompt
-    url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=768&nologo=true&seed={seed}"
+    image_urls = []
 
-    return [url]
+    for i, prompt in enumerate(prompts[:4]):
+        short = shorten_prompt(prompt)
+        encoded = urllib.parse.quote(short)
+        seed = hash(short) % 100000
+        url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=768&nologo=true&seed={seed}"
+        image_urls.append(url)
+
+    return image_urls
