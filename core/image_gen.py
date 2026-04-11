@@ -9,9 +9,29 @@ def parse_prompts(media_text: str) -> list[str]:
     prompts = []
     for line in lines:
         cleaned = re.sub(r"^\d+[\.\)]\s*", "", line.strip())
-        if cleaned and len(cleaned) > 10:
+        # Skip short lines, headers, and markdown
+        if cleaned and len(cleaned) > 10 and not cleaned.startswith("**") and not cleaned.startswith("#"):
             prompts.append(cleaned)
     return prompts[:4]  # Max 4 images
+
+
+def shorten_prompt(prompt: str, max_chars: int = 200) -> str:
+    """Shorten a long prompt to work with Pollinations URL limits."""
+    # Remove markdown formatting
+    prompt = re.sub(r"\*\*.*?\*\*", "", prompt)
+    prompt = re.sub(r"--ar \d+:\d+", "", prompt)
+    prompt = re.sub(r"--style \w+", "", prompt)
+    prompt = prompt.strip()
+
+    if len(prompt) <= max_chars:
+        return prompt
+
+    # Take the first sentence or first max_chars characters
+    first_sentence = prompt.split(". ")[0]
+    if len(first_sentence) <= max_chars:
+        return first_sentence
+
+    return prompt[:max_chars].rsplit(" ", 1)[0]
 
 
 def generate_images(prompts: list[str]) -> list[str]:
@@ -23,7 +43,8 @@ def generate_images(prompts: list[str]) -> list[str]:
     image_urls = []
 
     for prompt in prompts:
-        encoded = urllib.parse.quote(prompt)
+        short = shorten_prompt(prompt)
+        encoded = urllib.parse.quote(short)
         url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=768&nologo=true"
         image_urls.append(url)
 
