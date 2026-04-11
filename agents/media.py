@@ -1,27 +1,27 @@
 from core.llm import call_claude
 
 def run_media(input_data):
-
     scenes = input_data["scenes"]
 
-    # 🧪 EXAMPLE SCENES:
-    # 1. Girl applies lip tint incorrectly
-    # 2. Close-up showing mistake
-    # 3. Fix demonstration
+    prompt = f"""You are a visual prompt engineer specializing in AI image generation.
 
-    prompt = f"""
-You are a visual prompt engineer.
+Convert these ad scenes into detailed prompts for AI image tools (Midjourney, DALL-E, Flux).
 
-Convert scenes into AI image prompts.
-
-EXAMPLE:
-Scene: Girl applying lip tint incorrectly
-Output: "young woman applying lip tint incorrectly, soft lighting, beauty aesthetic, TikTok style"
-
-REAL SCENES:
+SCENES:
 {scenes}
 
-Return ONLY image prompts.
+For each scene, create a prompt that includes:
+- Subject and action
+- Lighting and mood
+- Camera angle and framing
+- Style reference (e.g., "TikTok aesthetic", "beauty editorial")
+- Color palette
+
+Return each prompt on its own line, numbered:
+
+1. [detailed image prompt for scene 1]
+2. [detailed image prompt for scene 2]
+3. [...]
 """
 
     return call_claude(prompt)
