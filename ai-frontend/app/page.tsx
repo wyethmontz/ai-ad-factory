@@ -12,7 +12,7 @@ export default function Home() {
     goal: "",
   });
 
-  const [result, setResult] = useState<Record<string, string> | null>(null);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState("");
   const [error, setError] = useState("");
@@ -167,8 +167,29 @@ export default function Home() {
 
           <div>
             <h3 className="text-sm font-semibold text-gray-400 mb-1">Media Prompts</h3>
-            <p className="text-white whitespace-pre-wrap">{result.media}</p>
+            <p className="text-white whitespace-pre-wrap">{result.media as string}</p>
           </div>
+
+          {(() => {
+            const imgs = typeof result.images === "string"
+              ? JSON.parse(result.images as string)
+              : result.images;
+            return Array.isArray(imgs) && imgs.length > 0 ? (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 mb-3">Generated Images</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {imgs.map((url: string, i: number) => (
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`Generated ad image ${i + 1}`}
+                      className="rounded-lg w-full"
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
     </div>

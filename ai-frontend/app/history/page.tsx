@@ -15,6 +15,7 @@ type Ad = {
   creative: string;
   qa_score: string;
   media: string;
+  images: string;
   created_at: string;
 };
 
