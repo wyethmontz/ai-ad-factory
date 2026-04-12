@@ -118,14 +118,14 @@ export default function AnalyticsPage() {
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-gray-400 mb-4">Ads by Platform</h3>
           {platformData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={platformData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
+                  cy="55%"
                   outerRadius={80}
                   label={({ name, value }) => `${name}: ${value}`}
                 >

@@ -2,6 +2,10 @@
 
 An autonomous AI-powered ad generation pipeline that creates complete advertising campaigns from a single brief. Built with 6 specialized AI agents, a full-stack web interface, and production-grade infrastructure.
 
+## Demo
+
+[![Watch the demo](https://cdn.loom.com/sessions/thumbnails/f80b83a6ec86464cb0416a8e238b4a64-with-play.gif)](https://www.loom.com/share/f80b83a6ec86464cb0416a8e238b4a64)
+
 ## How It Works
 
 ```
