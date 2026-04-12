@@ -4,7 +4,7 @@ An autonomous AI-powered ad generation pipeline that creates complete advertisin
 
 ## Demo
 
-[![Watch the demo](https://cdn.loom.com/sessions/thumbnails/f80b83a6ec86464cb0416a8e238b4a64-with-play.gif)](https://www.loom.com/share/f80b83a6ec86464cb0416a8e238b4a64)
+[![Watch Demo](https://img.shields.io/badge/Watch%20Demo-Loom-purple?style=for-the-badge&logo=loom)](https://www.loom.com/share/f80b83a6ec86464cb0416a8e238b4a64)
 
 ## How It Works
 
