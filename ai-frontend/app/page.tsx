@@ -168,6 +168,22 @@ export default function Home() {
             <h3 className="text-sm font-semibold text-gray-400 mb-1">Media Prompts</h3>
             <p className="text-white whitespace-pre-wrap">{result.media}</p>
           </div>
+
+          {result.images && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 mb-2">Generated Images</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {result.images.split(",").map((url: string, i: number) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt={`Ad scene ${i + 1}`}
+                    className="rounded-lg w-full object-cover border border-gray-700"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

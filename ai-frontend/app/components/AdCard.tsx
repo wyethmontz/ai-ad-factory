@@ -11,6 +11,7 @@ type Ad = {
   creative: string;
   qa_score: string;
   media: string;
+  images: string | null;
   created_at: string;
 };
 
@@ -32,8 +33,17 @@ export default function AdCard({ ad }: { ad: Ad }) {
     router.push("/");
   };
 
+  const firstImage = ad.images ? ad.images.split(",")[0] : null;
+
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex flex-col gap-3">
+      {firstImage && (
+        <img
+          src={firstImage}
+          alt={ad.product}
+          className="rounded-lg w-full h-40 object-cover border border-gray-700"
+        />
+      )}
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-lg font-bold text-white">{ad.product}</h3>

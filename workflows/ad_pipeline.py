@@ -7,6 +7,7 @@ from agents.qa import run_qa
 from agents.media import run_media
 from agents.optimizer import run_optimizer
 from core.db import save_ad
+from core.image_gen import generate_images
 
 def run_pipeline(input_data, on_step=None):
 
@@ -63,8 +64,15 @@ def run_pipeline(input_data, on_step=None):
         "scenes": creative
     })
 
+    # STEP 7 — IMAGE GENERATION
+    _step("Generating images...")
+    try:
+        image_urls = generate_images(media)
+    except Exception:
+        image_urls = []  # Don't block pipeline if image gen fails
+
     # ---------------------------
-    # STEP 7 — SAVE TO SUPABASE
+    # STEP 8 — SAVE TO SUPABASE
     # ---------------------------
 
     # Extract numeric QA score for analytics
@@ -83,7 +91,8 @@ def run_pipeline(input_data, on_step=None):
         "creative": creative,
         "qa_score": qa,
         "qa_score_numeric": qa_numeric,
-        "media": media
+        "media": media,
+        "images": ",".join(image_urls) if image_urls else None
     }
 
     # This pushes the data to the cloud!
