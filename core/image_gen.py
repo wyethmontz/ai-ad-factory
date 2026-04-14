@@ -1,9 +1,49 @@
 import os
 import re
-import replicate
+import time
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
+
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
+REPLICATE_API_URL = "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions"
+
+
+def _run_prediction(prompt: str) -> str | None:
+    """Call Replicate API directly, poll until complete, return image URL."""
+    headers = {
+        "Authorization": f"Bearer {REPLICATE_API_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "input": {
+            "prompt": prompt,
+            "num_outputs": 1,
+            "aspect_ratio": "1:1",
+            "output_format": "webp",
+            "output_quality": 80,
+        }
+    }
+
+    with httpx.Client(timeout=60) as client:
+        # Create prediction
+        res = client.post(REPLICATE_API_URL, headers=headers, json=body)
+        res.raise_for_status()
+        prediction = res.json()
+
+        # Poll until done
+        poll_url = prediction["urls"]["get"]
+        while prediction["status"] not in ("succeeded", "failed", "canceled"):
+            time.sleep(1)
+            res = client.get(poll_url, headers=headers)
+            res.raise_for_status()
+            prediction = res.json()
+
+        if prediction["status"] == "succeeded" and prediction.get("output"):
+            return prediction["output"][0]
+
+    return None
 
 
 def generate_images(media_prompts: str, max_images: int = 3) -> list[str]:
@@ -15,28 +55,15 @@ def generate_images(media_prompts: str, max_images: int = 3) -> list[str]:
     # Extract numbered prompts (e.g. "1. ...", "2. ...")
     lines = re.findall(r'\d+\.\s*(.+)', media_prompts)
     if not lines:
-        # Fallback: split by newlines and take non-empty lines
         lines = [l.strip() for l in media_prompts.split('\n') if l.strip()]
 
-    # Limit to max_images to control cost
     lines = lines[:max_images]
 
     image_urls = []
     for prompt in lines:
         try:
-            output = replicate.run(
-                "black-forest-labs/flux-schnell",
-                input={
-                    "prompt": prompt,
-                    "num_outputs": 1,
-                    "aspect_ratio": "1:1",
-                    "output_format": "webp",
-                    "output_quality": 80,
-                }
-            )
-            # output is a list of FileOutput URLs
-            if output:
-                url = str(output[0])
+            url = _run_prediction(prompt)
+            if url:
                 image_urls.append(url)
         except Exception as e:
             print(f"[IMAGE GEN ERROR] {e}")

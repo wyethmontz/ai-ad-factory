@@ -6,4 +6,3 @@ uvicorn
 supabase
 httpx
 slowapi
-replicate
