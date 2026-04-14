@@ -157,3 +157,10 @@ ai-ad-factory/
 - **Claude Sonnet 4** — Best balance of quality and cost for creative writing tasks.
 - **Supabase** — PostgreSQL + Auth + Realtime in one service. No separate auth server needed.
 - **Rate limiting with slowapi** — Prevents API abuse and Anthropic credit burning.
+
+## Roadmap
+
+- [ ] AI image generation (Flux via Replicate) — turn media prompts into actual images
+- [ ] Ad template library — reusable layouts for common ad formats
+- [ ] A/B variant generation — produce multiple ad versions from one brief
+- [ ] Export to platform — direct publish to Meta, TikTok, Google Ads
