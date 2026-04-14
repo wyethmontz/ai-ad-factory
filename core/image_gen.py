@@ -60,8 +60,10 @@ def generate_images(media_prompts: str, max_images: int = 3) -> list[str]:
     lines = lines[:max_images]
 
     image_urls = []
-    for prompt in lines:
+    for i, prompt in enumerate(lines):
         try:
+            if i > 0:
+                time.sleep(2)  # Avoid rate limiting between requests
             url = _run_prediction(prompt)
             if url:
                 image_urls.append(url)
